@@ -1,0 +1,33 @@
+<html lang="en">
+<meta charset="utf8">
+<body>
+
+<button onclick="window.location.reload();"> Обновить цвет </button>
+<table id="myTable" style="width:150px"></table>
+
+<script>
+
+    const table = document.getElementById("myTable");
+    for (let i = 0; i < 50; i++)
+        {
+        const row = document.createElement("tr");
+        for (let j = 0; j < 50; j++)
+        {
+            const cell = document.createElement("td");
+            let rand_num = Math.round(Math.random() * 256);
+            cell.style.backgroundColor = `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`;
+            cell.textContent = `${rand_num}`;
+
+            cell.onclick = function()
+            {
+                alert(`${rand_num}`);
+            };
+
+            row.appendChild(cell);
+        }
+        table.appendChild(row);
+        }
+    
+</script>
+</body>
+</html>
