@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курсы валют с визуализатором</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: white;
+        }
+        
+        /* Стили для бегущей строки */
+        .ticker-container {
+            width: 100%;
+            overflow: hidden;
+            background-color: #1e1e1e;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            animation: ticker 30s linear infinite;
+        }
+        
+        .ticker-item {
+            display: inline-block;
+            margin-right: 40px;
+            color: #89d4cf;
+            font-weight: bold;
+        }
+        
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        
+        /* Стили для музыкального круга */
+        .music-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60vh;
+        }
+        
+        .music-circle {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6e45e2, #89d4cf);
+            box-shadow: 0 0 30px rgba(110, 69, 226, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .music-circle::before {
+            content: '';
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background-color: #121212;
+            z-index: 1;
+        }
+        
+        .music-bars {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        .bar {
+            position: absolute;
+            width: 8px;
+            background: white;
+            border-radius: 4px;
+            transform-origin: bottom center;
+            animation: equalize 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes equalize {
+            0%, 100% {
+                height: 10px;
+            }
+            50% {
+                height: 40px;
+            }
+        }
+        
+        .play-icon {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: white;
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
+            z-index: 3;
+            opacity: 0.8;
+            transition: transform 0.3s;
+        }
+        
+        .music-circle:hover .play-icon {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+        
+        /* Стили для конвертера валют */
+        .converter-section {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            margin: 0 auto 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .converter-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #89d4cf;
+        }
+        
+        .converter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .converter-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #2d2d2d;
+            color: white;
+        }
+        
+        .result-container {
+            grid-column: span 2;
+            margin-top: 20px;
+            background-color: #2d2d2d;
+            border-radius: 5px;
+            overflow: hidden;
+            border-left: 4px solid #6e45e2;
+            position: relative;
+            height: 60px;
+        }
+        
+        .result-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #6e45e2, #89d4cf);
+            transition: width 300s linear; /* 5 минут = 300 секунд */
+        }
+        
+        .result-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+        
+        .last-update {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .time-left {
+            text-align: center;
+            margin-top: 10px;
+            color: #89d4cf;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Бегущая строка с курсами валют (в рублях) -->
+    <div class="ticker-container">
+        <div class="ticker" id="currency-ticker">
+            <span class="ticker-item">Загрузка курсов валют...</span>
+        </div>
+    </div>
+    
+    <!-- Анимированный музыкальный круг -->
+    <div class="music-section">
+        <div class="music-circle">
+            <div class="music-bars" id="music-bars"></div>
+            <div class="play-icon"></div>
+        </div>
+    </div>
+    
+    <!-- Конвертер валют -->
+    <div class="converter-section">
+        <h2 class="converter-title">Конвертер валют</h2>
+        <div class="converter-grid">
+            <div class="converter-group">
+                <label for="amount">Сумма:</label>
+                <input type="number" id="amount" value="1" min="0" step="0.01">
+            </div>
+            
+            <div class="converter-group">
+                <label for="from-currency">Из валюты:</label>
+                <select id="from-currency">
+                    <option value="USD">Доллар США (USD)</option>
+                    <option value="EUR">Евро (EUR)</option>
+                    <option value="GBP">Фунт стерлингов (GBP)</option>
+                    <option value="CNY">Китайский юань (CNY)</option>
+                    <option value="JPY">Японская иена (JPY)</option>
+                </select>
+            </div>
+            
+            <div class="converter-group">
+                <label for="to-currency">В валюту:</label>
+                <select id="to-currency">
+                    <option value="RUB">Российский рубль (RUB)</option>
+                    <option value="USD">Доллар США (USD)</option>
+                    <option value="EUR">Евро (EUR)</option>
+                    <option value="GBP">Фунт стерлингов (GBP)</option>
+                    <option value="JPY">Японская иена (JPY)</option>
+                </select>
+            </div>
+            
+            <div class="result-container">
+                <div class="result-fill" id="result-fill"></div>
+                <div class="result-text" id="conversion-result"></div>
+            </div>
+        </div>
+        <div class="time-left" id="time-left">До обновления: 5:00</div>
+        <div class="last-update" id="last-update"></div>
+    </div>
+
+    <script>
+        // 1. Музыкальный круг
+        const musicBars = document.getElementById('music-bars');
+        const barsCount = 12;
+        
+        for (let i = 0; i < barsCount; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.transform = `rotate(${i * (360 / barsCount)}deg) translateY(-80px)`;
+            bar.style.animationDelay = `${i * 0.1}s`;
+            musicBars.appendChild(bar);
+        }
+        
+        document.querySelector('.music-circle').addEventListener('click', function() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                bar.style.animation = 'none';
+                setTimeout(() => {
+                    bar.style.animation = `equalize 1.5s ${Math.random() * 0.5}s infinite ease-in-out`;
+                }, 10);
+            });
+        });
+        
+        // 2. Курсы валют и конвертер
+        const API_KEY = 'ваш_api_ключ';
+        const API_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/RUB`;
+        
+        let exchangeRates = {};
+        let updateInterval;
+        let fillInterval;
+        let timeLeft = 300; // 5 минут в секундах
+        
+        async function fetchExchangeRates() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                if (data.result === 'success') {
+                    exchangeRates = data.conversion_rates;
+                    updateTicker();
+                    updateLastUpdate(data.time_last_update_utc);
+                    startFillAnimation();
+                    startTimer();
+                } else {
+                    useMockData();
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке курсов валют:', error);
+                useMockData();
+            }
+        }
+        
+        function useMockData() {
+            exchangeRates = {
+                RUB: 1,
+                USD: 0.0108,
+                EUR: 0.0100,
+                GBP: 0.0085,
+                JPY: 1.62,
+                CNY: 0.078,
+                CHF: 0.0098,
+                CAD: 0.0147,
+                AUD: 0.0163
+            };
+            updateTicker();
+            updateLastUpdate(new Date().toUTCString());
+            startFillAnimation();
+            startTimer();
+        }
+        
+        function updateTicker() {
+            const ticker = document.getElementById('currency-ticker');
+            let html = '';
+            
+            for (const currency in exchangeRates) {
+                if (currency !== 'RUB') {
+                    const rate = (1 / exchangeRates[currency]).toFixed(2);
+                    html += `<span class="ticker-item">1 ${currency} = ${rate} RUB</span>`;
+                }
+            }
+            
+            ticker.innerHTML = html;
+            
+            ticker.style.animation = 'none';
+            setTimeout(() => {
+                ticker.style.animation = 'ticker 30s linear infinite';
+            }, 10);
+        }
+        
+        function updateLastUpdate(timestamp) {
+            document.getElementById('last-update').textContent = `Обновлено: ${timestamp}`;
+        }
+        
+        function startFillAnimation() {
+            const fillElement = document.getElementById('result-fill');
+            
+            // Сброс анимации
+            fillElement.style.transition = 'none';
+            fillElement.style.width = '0';
+            
+            // Запуск новой анимации
+            setTimeout(() => {
+                fillElement.style.transition = 'width 300s linear';
+                fillElement.style.width = '100%';
+            }, 10);
+            
+            // Обновление результата конвертации
+            convertCurrency();
+        }
+        
+        function startTimer() {
+            timeLeft = 300;
+            updateTimerDisplay();
+            
+            clearInterval(fillInterval);
+            fillInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(fillInterval);
+                    fetchExchangeRates();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            document.getElementById('time-left').textContent = 
+                `До обновления: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function convertCurrency() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const fromCurrency = document.getElementById('from-currency').value;
+            const toCurrency = document.getElementById('to-currency').value;
+            
+            if (isNaN(amount)) {
+                document.getElementById('conversion-result').textContent = 'Введите корректную сумму';
+                return;
+            }
+            
+            if (!exchangeRates[fromCurrency] || !exchangeRates[toCurrency]) {
+                document.getElementById('conversion-result').textContent = 'Ошибка: данные по валютам недоступны';
+                return;
+            }
+            
+            const amountInRUB = amount / exchangeRates[fromCurrency];
+            const convertedAmount = amountInRUB * exchangeRates[toCurrency];
+            
+            document.getElementById('conversion-result').innerHTML = `
+                ${amount.toFixed(2)} ${fromCurrency} = <strong>${convertedAmount.toFixed(2)} ${toCurrency}</strong>
+            `;
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchExchangeRates();
+            
+            document.getElementById('amount').addEventListener('input', convertCurrency);
+            document.getElementById('from-currency').addEventListener('change', convertCurrency);
+            document.getElementById('to-currency').addEventListener('change', convertCurrency);
+        });
+    </script>
+</body>
+</html>
